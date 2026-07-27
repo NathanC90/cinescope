@@ -22,5 +22,7 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  /* *.selfcheck.ts are Node scripts, not app code — typechecked by tsconfig.node.json. */
+  "exclude": ["src/**/*.selfcheck.ts"]
 }

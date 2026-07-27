@@ -4,7 +4,9 @@
     "target": "es2023",
     "lib": ["ES2023", "DOM"],
     "module": "esnext",
-    "types": ["vite/client"],
+    /* "node" is here for the *.selfcheck.ts scripts, which import node:assert and
+       need the DOM lib too because they exercise browser-facing modules. */
+    "types": ["vite/client", "node"],
     "allowArbitraryExtensions": true,
     "skipLibCheck": true,
 
@@ -22,7 +24,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"],
-  /* *.selfcheck.ts are Node scripts, not app code — typechecked by tsconfig.node.json. */
-  "exclude": ["src/**/*.selfcheck.ts"]
+  "include": ["src"]
 }

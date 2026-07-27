@@ -1,122 +1,114 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState, useDeferredValue } from "react";
+import { Header } from "./components/Header";
+import { MovieGrid } from "./components/MovieGrid";
+import { DetailView } from "./components/DetailView";
+import { useRoute } from "./lib/useRoute";
+import { useAsync } from "./lib/useAsync";
+import { useWatchlist } from "./lib/useWatchlist";
+import { fetchPopular, searchMovies, isLiveData } from "./lib/tmdb";
+import "./App.css";
 
-function App() {
-  const [count, setCount] = useState(0)
+function Browse({ query }: { query: string }) {
+  // Deferred so typing stays responsive while the previous grid is still on screen.
+  const deferred = useDeferredValue(query.trim());
+  const searching = deferred.length > 0;
+
+  const popular = useAsync((signal) => fetchPopular(signal), [], searching);
+  const results = useAsync((signal) => searchMovies(deferred, signal), [deferred], !searching);
+
+  const active = searching ? results : popular;
+
+  if (active.error) {
+    return (
+      <p className="notice notice--error" role="alert">
+        {active.error}
+      </p>
+    );
+  }
 
   return (
     <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
+      <h2 className="section-title">
+        {searching ? `Results for “${deferred}”` : "Popular right now"}
+      </h2>
+      <MovieGrid
+        movies={active.data ?? []}
+        loading={active.loading}
+        empty={
+          <p className="notice">
+            Nothing matched “{deferred}”. Try another title.
           </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
+        }
+      />
     </>
-  )
+  );
 }
 
-export default App
+function Watchlist() {
+  const { items } = useWatchlist();
+
+  return (
+    <>
+      <h2 className="section-title">Your watchlist</h2>
+      <MovieGrid
+        movies={items}
+        empty={
+          <p className="notice">
+            Nothing saved yet. <a href="#/">Browse movies</a> and hit Save to build your list.
+          </p>
+        }
+      />
+    </>
+  );
+}
+
+export default function App() {
+  const { route, navigate } = useRoute();
+  const [query, setQuery] = useState("");
+
+  // Searching from the watchlist or a detail page should take you where results appear.
+  function handleQueryChange(value: string) {
+    setQuery(value);
+    if (value.trim() && route.name !== "home") navigate({ name: "home" });
+  }
+
+  return (
+    <>
+      <a className="skip-link" href="#main">
+        Skip to content
+      </a>
+
+      <Header route={route} query={query} onQueryChange={handleQueryChange} />
+
+      <main className="main" id="main">
+        {route.name === "movie" ? (
+          <>
+            <a className="back-link" href="#/">
+              ← Back
+            </a>
+            <DetailView id={route.id} />
+          </>
+        ) : route.name === "watchlist" ? (
+          <Watchlist />
+        ) : (
+          <Browse query={query} />
+        )}
+      </main>
+
+      <footer className="footer">
+        {isLiveData ? (
+          <p>
+            Data from{" "}
+            <a href="https://www.themoviedb.org/" target="_blank" rel="noreferrer">
+              TMDB
+            </a>
+          </p>
+        ) : (
+          <p>
+            Running on local demo data — add a <code>VITE_TMDB_KEY</code> to load live titles.
+          </p>
+        )}
+      </footer>
+    </>
+  );
+}

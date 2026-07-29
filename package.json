@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "check": "node --experimental-strip-types --disable-warning=ExperimentalWarning src/lib/format.selfcheck.ts && node --experimental-strip-types --disable-warning=ExperimentalWarning src/lib/useRoute.selfcheck.ts",
+    "check": "node --experimental-strip-types --disable-warning=ExperimentalWarning src/lib/format.selfcheck.ts && node --experimental-strip-types --disable-warning=ExperimentalWarning src/lib/useRoute.selfcheck.ts && node --experimental-strip-types --disable-warning=ExperimentalWarning worker/src/routes.selfcheck.ts",
     "preview": "vite preview"
   },
   "dependencies": {

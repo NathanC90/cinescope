@@ -1,0 +1,11 @@
+name = "cinescope-tmdb"
+main = "src/index.ts"
+compatibility_date = "2026-01-01"
+
+# Origins permitted to call the proxy. Anything else gets a 403, and an empty list
+# fails closed. Add your own dev origin here if you run Vite on a different port.
+[vars]
+ALLOWED_ORIGINS = "https://nathanc90.github.io,http://localhost:5173"
+
+# TMDB_KEY is NOT set here — it is a secret:
+#   npx wrangler secret put TMDB_KEY

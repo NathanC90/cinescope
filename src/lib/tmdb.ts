@@ -1,13 +1,15 @@
 // TMDB data layer. Every function returns UI-ready domain types (see ../types.ts).
-// With no VITE_TMDB_KEY set, falls back to local demo data so the app is always presentable.
+//
+// Requests go to our own proxy (see ../../worker), never to TMDB directly: the API key
+// lives as a Worker secret so it is never shipped to the browser. VITE_API_BASE is just
+// the proxy's public URL — not a credential. Unset, the app serves local demo data.
 import type { Movie, MovieDetail } from "../types";
 import { formatYear } from "./format";
 import { MOCK_MOVIES, MOCK_DETAILS } from "./mockData";
 
-const KEY = import.meta.env.VITE_TMDB_KEY as string | undefined;
-const BASE = "https://api.themoviedb.org/3";
+const BASE = (import.meta.env.VITE_API_BASE as string | undefined)?.replace(/\/$/, "");
 
-export const isLiveData = Boolean(KEY);
+export const isLiveData = Boolean(BASE);
 
 interface TmdbMovie {
   id: number;
@@ -32,17 +34,16 @@ function toMovie(m: TmdbMovie): Movie {
 
 async function get<T>(path: string, params: Record<string, string> = {}, signal?: AbortSignal): Promise<T> {
   const url = new URL(BASE + path);
-  url.searchParams.set("api_key", KEY!);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
 
   const res = await fetch(url, { signal });
-  if (!res.ok) throw new Error(`TMDB request failed (${res.status})`);
+  if (!res.ok) throw new Error(`Request failed (${res.status})`);
   return res.json() as Promise<T>;
 }
 
 /** Popular titles for the landing grid. */
 export async function fetchPopular(signal?: AbortSignal): Promise<Movie[]> {
-  if (!KEY) return MOCK_MOVIES;
+  if (!BASE) return MOCK_MOVIES;
   const data = await get<{ results: TmdbMovie[] }>("/movie/popular", { page: "1" }, signal);
   return data.results.map(toMovie);
 }
@@ -51,7 +52,7 @@ export async function fetchPopular(signal?: AbortSignal): Promise<Movie[]> {
 export async function searchMovies(query: string, signal?: AbortSignal): Promise<Movie[]> {
   const q = query.trim();
   if (!q) return [];
-  if (!KEY) {
+  if (!BASE) {
     const needle = q.toLowerCase();
     return MOCK_MOVIES.filter(
       (m) => m.title.toLowerCase().includes(needle) || m.overview.toLowerCase().includes(needle),
@@ -74,7 +75,7 @@ interface TmdbDetail extends TmdbMovie {
 
 /** Full detail for one title, including director and top billing. */
 export async function fetchMovie(id: number, signal?: AbortSignal): Promise<MovieDetail> {
-  if (!KEY) {
+  if (!BASE) {
     const mock = MOCK_DETAILS[id];
     if (!mock) throw new Error("Movie not found");
     return mock;

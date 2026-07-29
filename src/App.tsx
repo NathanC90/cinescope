@@ -105,7 +105,7 @@ export default function App() {
           </p>
         ) : (
           <p>
-            Running on local demo data — add a <code>VITE_TMDB_KEY</code> to load live titles.
+            Running on local demo data — set <code>VITE_API_BASE</code> to load live titles.
           </p>
         )}
       </footer>

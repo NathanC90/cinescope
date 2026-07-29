@@ -12,10 +12,13 @@ dist
 dist-ssr
 *.local
 
-# Local secrets — TMDB key lives here, never in git
+# Local secrets — never in git
 .env
 .env.*
 !.env.example
+# wrangler's local secret file for the proxy Worker
+.dev.vars
+worker/.dev.vars
 
 # Editor directories and files
 .vscode/*

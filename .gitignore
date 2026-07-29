@@ -19,6 +19,9 @@ dist-ssr
 # wrangler's local secret file for the proxy Worker
 .dev.vars
 worker/.dev.vars
+# wrangler's local state — build artefacts, and it caches upstream responses
+.wrangler/
+worker/.wrangler/
 
 # Editor directories and files
 .vscode/*

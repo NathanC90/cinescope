@@ -56,7 +56,7 @@ export default {
       return json({ error: "Not found" }, 404, origin);
     }
 
-    const params = safeParams(url.searchParams);
+    const params = safeParams(url.searchParams, url.pathname);
 
     // Cache key is built from the public request only — never from the upstream URL,
     // which carries the key and would write it into the cache index.

@@ -17,24 +17,51 @@ export const ROUTES: Route[] = [
   { pattern: /^\/search\/movie$/, ttl: 600 },
 ];
 
-/** Query parameters we forward. Anything else is dropped rather than passed along. */
-export const ALLOWED_PARAMS = ["page", "query", "include_adult", "append_to_response"];
+/** Only these are caller-controlled. Everything else is either dropped or pinned by
+ *  the proxy below — the less a caller can steer, the smaller the surface. */
+export const ALLOWED_PARAMS = ["page", "query"];
+
+/** TMDB paginates to 500; anything beyond is an error response we'd rather not fetch. */
+export const MAX_PAGE = 500;
+/** Long enough for any real title, short enough not to be a payload. */
+export const MAX_QUERY = 120;
 
 export function matchRoute(pathname: string): Route | null {
   return ROUTES.find((r) => r.pattern.test(pathname)) ?? null;
 }
 
 /**
- * Filtered, order-stable params. Sorting matters: it keeps the cache key identical
- * for requests that differ only in parameter order.
+ * Filtered, clamped, order-stable params. Sorting matters: it keeps the cache key
+ * identical for requests that differ only in parameter order.
+ *
+ * `pathname` decides the pinned values: adult content is never enabled regardless of
+ * what the caller asks for, and credits are appended only on the detail endpoint.
  */
-export function safeParams(params: URLSearchParams): URLSearchParams {
+export function safeParams(params: URLSearchParams, pathname = ""): URLSearchParams {
   const out = new URLSearchParams();
+
   for (const key of [...ALLOWED_PARAMS].sort()) {
-    const value = params.get(key);
-    if (value !== null && value !== "") out.set(key, value);
+    let value = params.get(key);
+    if (value === null || value === "") continue;
+
+    if (key === "page") {
+      const n = Number(value);
+      if (!Number.isInteger(n) || n < 1) continue;
+      value = String(Math.min(n, MAX_PAGE));
+    }
+    if (key === "query") value = value.slice(0, MAX_QUERY);
+
+    out.set(key, value);
   }
-  return out;
+
+  // Pinned server-side, never taken from the caller.
+  out.set("include_adult", "false");
+  if (/^\/movie\/\d+$/.test(pathname)) out.set("append_to_response", "credits");
+
+  // Re-sort so the pinned keys land in a stable position for the cache key.
+  const sorted = new URLSearchParams();
+  for (const key of [...out.keys()].sort()) sorted.set(key, out.get(key)!);
+  return sorted;
 }
 
 /** Origins allowed to call the proxy, from a comma-separated env var. */

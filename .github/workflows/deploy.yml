@@ -32,7 +32,12 @@ jobs:
       # Fail the deploy on a broken check, not after it's live.
       - run: npm run check
       - run: npm run lint
+      # Vite inlines VITE_* into the bundle, so this key ends up readable in the
+      # deployed JS — it is not a secret in the usual sense. The repo secret only
+      # keeps it out of source control. Unset, the app falls back to demo data.
       - run: npm run build
+        env:
+          VITE_TMDB_KEY: ${{ secrets.TMDB_KEY }}
 
       # SPA fallback: a direct hit on an unknown path serves index.html instead of a 404.
       - run: cp dist/index.html dist/404.html

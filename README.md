@@ -1,3 +1,5 @@
+**English** | [繁體中文](README.zh-TW.md)
+
 # CineScope
 
 A movie discovery app: browse popular titles, search, open a detail view, and build a
